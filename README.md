@@ -1,247 +1,189 @@
 # WordPress Docker Environment
 
-Универсальная среда разработки WordPress на Docker. Один скрипт - и всё работает!
+Production-ready WordPress development environment with Docker. Single command setup.
 
-## Быстрый старт
-
-### 1. Клонируйте репозиторий
+## Quick Start
 
 ```bash
-git clone <your-repo-url>
+git clone <repository-url>
 cd wp-my-project
-```
-
-### 2. Запустите проект
-
-```bash
 ./start.sh
 ```
 
-**Скрипт автоматически:**
-- ✅ Распакует WordPress из архива `wordpress-6.9-ru_RU.zip`
-- ✅ Спросит порты для WordPress, phpMyAdmin и MySQL
-- ✅ Сгенерирует `.env` файл с настройками и случайными паролями
-- ✅ Запустит Docker контейнеры
+The script will:
+- Extract WordPress from included archive
+- Prompt for ports configuration
+- Generate `.env` with credentials
+- Start Docker containers
 
-### 3. Установите WordPress
+Access WordPress at the configured port and follow installation wizard.
 
-Откройте браузер по адресу, который покажет скрипт (например http://localhost:8082) и следуйте мастеру установки.
-
-**Готово!** 🎉
-
-## Особенности
-
-- 🚀 **Один скрипт** - клонировал, запустил `./start.sh`, работает
-- 📦 **WordPress в архиве** - не нужно качать отдельно
-- ⚙️ **Автонастройка** - генерирует `.env`, проверяет порты
-- 🔄 **Многопроектность** - легко создавать копии для разных проектов
-- 📤 **Большие файлы** - поддержка загрузки до 256MB
-- 🇷🇺 **Русский WordPress** - версия 6.9
-
-## Структура проекта
+## Project Structure
 
 ```
 .
-├── docker-compose.yml         # Конфигурация Docker
-├── upload.ini                # PHP настройки (256MB)
-├── start.sh                  # 🚀 Главный скрипт запуска
-├── stop.sh                   # Скрипт остановки
-├── wordpress-6.9-ru_RU.zip   # Архив WordPress (коммитится)
-└── wordpress/                # WordPress файлы (НЕ коммитится, создается автоматически)
+├── docker-compose.yml         # Docker configuration
+├── upload.ini                # PHP settings (256MB upload limit)
+├── start.sh                  # Setup and start script
+├── stop.sh                   # Stop and cleanup script
+├── wordpress-6.9-ru_RU.zip   # WordPress archive (tracked in git)
+└── wordpress/                # WordPress files (not tracked)
     ├── wp-content/
     ├── wp-admin/
     └── wp-includes/
 ```
 
-## Управление
+## Configuration
 
-### Повторный запуск
+All settings are managed through `.env` file (auto-generated on first run):
 
+- `WORDPRESS_PORT` - WordPress port (default: 8082)
+- `PHPMYADMIN_PORT` - phpMyAdmin port (default: 8083)
+- `MYSQL_PORT` - MySQL external port (default: 3337)
+- `PROJECT_NAME` - Docker containers prefix
+- `MYSQL_ROOT_PASSWORD` - Auto-generated
+- `MYSQL_PASSWORD` - Auto-generated
+
+## Management
+
+**Start/Restart:**
 ```bash
 ./start.sh
 ```
 
-При повторном запуске конфигурация не запрашивается - используются сохраненные настройки.
-
-### Остановка
-
+**Stop:**
 ```bash
 ./stop.sh
 ```
 
-Выберите действие:
-1. Остановить контейнеры (данные сохранятся)
-2. Остановить и удалить все данные (полная очистка)
-3. Сбросить конфигурацию (для изменения портов)
+Options:
+1. Stop containers (preserve data)
+2. Stop and remove all data
+3. Reset configuration (for port changes)
 
-### Прямое управление Docker
-
+**Direct Docker commands:**
 ```bash
-# Остановить
-docker-compose down
-
-# Удалить все данные
-docker-compose down -v
-
-# Логи
-docker-compose logs -f wordpress
-
-# Перезапуск
-docker-compose restart
+docker-compose down              # Stop
+docker-compose down -v           # Stop and remove data
+docker-compose logs -f wordpress # View logs
+docker-compose restart           # Restart
 ```
 
-## Создание нового проекта
+## PHP Configuration
 
-### Вариант 1: Копирование
+Current settings:
+- PHP Memory limit: 512MB (`upload.ini`)
+- WordPress Memory limit: 512MB (`WP_MEMORY_LIMIT`)
+- Max upload: 256MB
+- POST max: 256MB
+- Max execution time: 600s
 
+Edit `upload.ini` and restart:
 ```bash
-# Скопируйте директорию
-cp -r wp-my-project my-new-project
-cd my-new-project
-
-# Очистите конфигурацию
-rm -f .env .env.configured
-rm -rf wordpress
-
-# Запустите (WordPress распакуется автоматически)
-./start.sh
+docker-compose restart wordpress
 ```
 
-### Вариант 2: Git clone
+WordPress memory limits are configured via `WORDPRESS_CONFIG_EXTRA` in `docker-compose.yml`.
 
+## Database Access
+
+**phpMyAdmin:**
+- URL: `http://localhost:{PHPMYADMIN_PORT}`
+- User: `root`
+- Password: Check `.env` → `MYSQL_ROOT_PASSWORD`
+
+**External connection:**
+```
+Host: localhost
+Port: {MYSQL_PORT from .env}
+Database: wordpress
+User: wordpress
+Password: {MYSQL_PASSWORD from .env}
+```
+
+## New Project Setup
+
+**Method 1: Clone existing project**
 ```bash
 git clone <repo-url> my-new-project
 cd my-new-project
 ./start.sh
 ```
 
-Всё! WordPress распакуется из архива автоматически.
-
-## Обновление WordPress
-
-Чтобы использовать другую версию WordPress:
-
-1. Скачайте нужный архив с https://ru.wordpress.org/download/
-2. Переименуйте в формат `wordpress-*.zip` (например `wordpress-6.10-ru_RU.zip`)
-3. Положите в корень проекта (старый можно удалить)
-4. Запустите `./start.sh` - скрипт найдет новый архив
-
-## Работа с темами и плагинами
-
-После установки WordPress файлы находятся в `wordpress/`:
-
-```
-wordpress/wp-content/
-├── themes/        # Ваши темы
-├── plugins/       # Ваши плагины  
-└── uploads/       # Загруженные файлы
-```
-
-Папка `wordpress/` не коммитится в git (указана в `.gitignore`).
-
-**Для разработки темы:**
-1. Создайте тему в `wordpress/wp-content/themes/my-theme/`
-2. Работайте с файлами напрямую
-3. Изменения применяются мгновенно (volume mount)
-
-**Для сохранения темы в git:**
-- Либо создайте отдельный репозиторий для темы
-- Либо скопируйте тему в отдельную папку вне `wordpress/`
-
-## Настройки PHP
-
-Текущие настройки (файл `upload.ini`):
-
-- 📤 Максимальный размер файла: **256MB**
-- 📨 Максимальный размер POST: **256MB**
-- 🧠 Лимит памяти: **512MB**
-- ⏱️ Время выполнения: **600 секунд**
-
-Для изменения отредактируйте `upload.ini` и перезапустите:
-
+**Method 2: Copy directory**
 ```bash
-docker-compose restart wordpress
+cp -r wp-my-project my-new-project
+cd my-new-project
+rm -f .env .env.configured
+rm -rf wordpress
+./start.sh
 ```
 
-## Подключение к MySQL
+## Theme Development
 
-### Через phpMyAdmin
+WordPress files are in `wordpress/` directory (not tracked in git).
 
-1. Откройте phpMyAdmin (порт из вывода `./start.sh`)
-2. Войдите как `root` (пароль в `.env` → `MYSQL_ROOT_PASSWORD`)
+**Development workflow:**
+1. Create theme in `wordpress/wp-content/themes/my-theme/`
+2. Edit files directly (changes apply immediately via volume mount)
+3. For git tracking, maintain theme in separate repository
 
-### Через приложение
+## WordPress Updates
 
-Параметры подключения в файле `.env`:
+To use different WordPress version:
+1. Download archive from https://wordpress.org/download/
+2. Name it `wordpress-*.zip`
+3. Place in project root
+4. Run `./start.sh`
 
-```bash
-Host: localhost
-Port: MYSQL_PORT (из .env)
-Database: wordpress
-User: wordpress
-Password: MYSQL_PASSWORD (из .env)
-```
+## Troubleshooting
 
-## Решение проблем
-
-### WordPress не найден при запуске
-
-Убедитесь, что в корне есть файл `wordpress-*.zip`:
-
+**WordPress not found:**
 ```bash
 ls -la wordpress-*.zip
 ```
+Download from https://wordpress.org/download/ if missing.
 
-Если нет - скачайте с https://ru.wordpress.org/download/
+**Port conflicts:**
+Script automatically detects and prompts for alternative ports.
 
-### Порт занят
-
-Скрипт автоматически проверит и попросит ввести другой порт.
-
-### Права доступа
-
+**Permission issues:**
 ```bash
 sudo chown -R $(whoami):$(whoami) wordpress/
 ```
 
-### Сброс всего проекта
-
+**Complete reset:**
 ```bash
-./stop.sh  # Выберите пункт 2
+./stop.sh  # Select option 2
 rm -rf wordpress
 rm -f .env .env.configured
 ./start.sh
 ```
 
-## Git
+## Git Configuration
 
-В `.gitignore` настроено:
-
-✅ **Коммитится:**
+**Tracked in git:**
 - `docker-compose.yml`
 - `upload.ini`
 - `start.sh`, `stop.sh`
-- `wordpress-*.zip` (архив WordPress)
+- `wordpress-*.zip` (WordPress archive)
 
-❌ **НЕ коммитится:**
-- `.env` (пароли)
-- `.env.configured` (флаг настройки)
-- `wordpress/` (распакованные файлы - генерируются автоматически)
+**Not tracked:**
+- `.env` (credentials)
+- `.env.configured` (setup flag)
+- `wordpress/` (generated from archive)
 
-## Требования
+## Requirements
 
 - Docker Desktop
 - Docker Compose
 - Bash
 - unzip
 
-## Workflow для новых проектов
+## Workflow
 
-1. **Клонировать** → `git clone <repo>`
-2. **Запустить** → `./start.sh`
-3. **Установить WordPress** → открыть браузер
-4. **Разработка** → создать тему в `wordpress/wp-content/themes/`
-5. **Готово!**
-
-Всё настолько просто! 🎉
-
+1. Clone repository
+2. Run `./start.sh`
+3. Install WordPress via browser
+4. Develop theme in `wordpress/wp-content/themes/`
+5. Stop with `./stop.sh`
