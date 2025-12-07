@@ -1,0 +1,79 @@
+services:
+  db:
+    image: mysql:8.0
+    platform: ${DOCKER_PLATFORM:-linux/amd64}
+    container_name: ${PROJECT_NAME:-wordpress}-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - '${MYSQL_PORT:-3306}:3306'
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      timeout: 20s
+      retries: 10
+    networks:
+      - wordpress_network
+
+  wordpress:
+    depends_on:
+      db:
+        condition: service_healthy
+    image: wordpress:latest
+    platform: ${DOCKER_PLATFORM:-linux/amd64}
+    container_name: ${PROJECT_NAME:-wordpress}-app
+    restart: always
+    ports:
+      - '${WORDPRESS_PORT:-8080}:80'
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: ${MYSQL_USER}
+      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD}
+      WORDPRESS_DB_NAME: ${MYSQL_DATABASE}
+      WORDPRESS_DEBUG: ${WORDPRESS_DEBUG:-0}
+    volumes:
+      - ./wordpress:/var/www/html
+      - ./upload.ini:/usr/local/etc/php/conf.d/99-upload.ini
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - wordpress_network
+
+  phpmyadmin:
+    depends_on:
+      - db
+    image: phpmyadmin/phpmyadmin:latest
+    platform: ${DOCKER_PLATFORM:-linux/amd64}
+    container_name: ${PROJECT_NAME:-wordpress}-phpmyadmin
+    restart: always
+    ports:
+      - '${PHPMYADMIN_PORT:-8081}:80'
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - phpmyadmin_data:/sessions
+    networks:
+      - wordpress_network
+
+volumes:
+  db_data:
+    driver: local
+  phpmyadmin_data:
+    driver: local
+
+networks:
+  wordpress_network:
+    driver: bridge
+    name: ${PROJECT_NAME:-wordpress}_network

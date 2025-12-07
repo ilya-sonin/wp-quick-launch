@@ -1,0 +1,25 @@
+# Environment variables
+.env
+.env.configured
+
+# WordPress directory (not tracked, created from archive)
+wordpress/
+
+# WP-CLI
+wp-cli.local.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
